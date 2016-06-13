@@ -1,10 +1,15 @@
 #include "tinyweb.h"
+#define SBUFSIZE 16
+#define NTHREADS 4
 
 void * thread(void *vargp);
 
+sbuf_t sbuf;
+
 int main(int argc, char **argv)
 {
-	int listenfd, port, clientlen, *connfdp;
+	int i, listenfd, port, connfd;
+	socklen_t clientlen = sizeof(struct sockaddr_in);
 	struct sockaddr_in clientaddr;
 	pthread_t tid;
 
@@ -15,23 +20,26 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	port = atoi(argv[1]);
-
+	sbuf_init(&sbuf, SBUFSIZE);
 	listenfd = Open_listenfd(port);
+	for (i = 0; i < NTHREADS; ++i)
+		Pthread_create(&tid, NULL, thread, NULL);
+
 	for(;;)
 	{
-		clientlen = sizeof(clientaddr);
-		connfdp = Malloc(sizeof(int));
-		*connfdp = Accept(listenfd, (SA *)&clientaddr, &clientlen);
-		Pthread_create(&tid, NULL, thread, connfdp);
+		connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
+		sbuf_insert(&sbuf, connfd);
 	}
 }
 
 void * thread(void *vargp)
 {
-	int connfd = *((int *)vargp);
+	int connfd;
 	Pthread_detach(pthread_self());
-	Free(vargp);
-	doit(connfd);
-	Close(connfd);
-	return NULL;
+	for(;;)
+	{
+		connfd = sbuf_remove(&sbuf);
+		doit(connfd);
+		Close(connfd);
+	}
 }

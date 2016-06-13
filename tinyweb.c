@@ -19,7 +19,7 @@ void doit(int fd)
 		return;
 	}
 	read_requesthdrs(&rio);
-	
+
 	/* Parse URI from GET request */
 	is_static = parse_uri(uri, filename, cgiargs);
 	if (stat(filename, &sbuf) < 0)
@@ -27,7 +27,7 @@ void doit(int fd)
 		clienterror(fd, filename, "404", "Fot found", "tinyweb could not find this file");
 		return;
 	}
-	
+
 	if (is_static)
 	{
 		if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode))
@@ -53,14 +53,14 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg, char *longms
 	char buf[MAXLINE], body[MAXBUF];
 
 	/* Build the HTTP body */
-	sprintf(body, "<html><title>TinyWeb error</title>");	
-	sprintf(body, "%s<body bgcolor=""ffffff"">\r\n", body);	
+	sprintf(body, "<html><title>TinyWeb error</title>");
+	sprintf(body, "%s<body bgcolor=""ffffff"">\r\n", body);
 	sprintf(body, "%s%s: %s\r\n", body, errnum, shortmsg);
 	sprintf(body, "%s<p>%s: %s\r\n", body, longmsg, cause);
-	sprintf(body, "%s<hr><em>The TinyWeb HTTP server</em>\r\n", body);	
+	sprintf(body, "%s<hr><em>The TinyWeb HTTP server</em>\r\n", body);
 
 	/* Print the HTTP responese */
-	sprintf(buf, "HTTP/1.0 %s %s\r\n", errnum, shortmsg);	
+	sprintf(buf, "HTTP/1.0 %s %s\r\n", errnum, shortmsg);
 	Rio_writen(fd, buf, strlen(buf));
     sprintf(buf, "Content-type: text/html\r\n");
     Rio_writen(fd, buf, strlen(buf));
@@ -72,7 +72,7 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg, char *longms
 void read_requesthdrs(rio_t *rp)
 {
 	char buf[MAXLINE];
-	
+
 	Rio_readlineb(rp, buf, MAXLINE);
 	while (strcmp(buf, "\r\n"))
 	{
@@ -149,7 +149,7 @@ void serve_dynamic(int fd, char *filename, char *cgiargs)
 	char buf[MAXLINE], *emptylist[] = {NULL};
 
     /* Return first part of HTTP response */
-    sprintf(buf, "HTTP/1.0 200 OK\r\n"); 
+    sprintf(buf, "HTTP/1.0 200 OK\r\n");
     Rio_writen(fd, buf, strlen(buf));
     sprintf(buf, "Server: TinyWeb Server\r\n");
     Rio_writen(fd, buf, strlen(buf));
@@ -160,8 +160,45 @@ void serve_dynamic(int fd, char *filename, char *cgiargs)
 		setenv("QUERY_STRING", cgiargs, 1);
 		Dup2(fd, STDOUT_FILENO);
 		Execve(filename, emptylist, environ);
-	}	
+	}
 	Wait(NULL);
 }
 
+/*******************************
+ * Small thread pool
+ *******************************/
 
+void sbuf_init(sbuf_t *sp, int n)
+{
+	sp->buf = Calloc(n, sizeof(int));
+	sp->n = n;
+	sp->front = sp->rear = 0;
+	Sem_init(&sp->mutex, 0, 1);
+	Sem_init(&sp->slots, 0, n);
+	Sem_init(&sp->items, 0, 0);
+}
+
+void sbuf_deinit(sbuf_t *sp)
+{
+	Free(sp->buf);
+}
+
+void sbuf_insert(sbuf_t *sp, int item)
+{
+	P(&sp->slots);
+	P(&sp->mutex);
+	sp->buf[sp->rear = (++sp->rear) % (sp->n)] = item;
+	V(&sp->mutex);
+	V(&sp->items);
+}
+
+int sbuf_remove(sbuf_t *sp)
+{
+	int item;
+	P(&sp->items);
+	P(&sp->mutex);
+	item = sp->buf[sp->front = (++sp->front) % (sp->n)];
+	V(&sp->mutex);
+	V(&sp->slots);
+	return item;
+}
