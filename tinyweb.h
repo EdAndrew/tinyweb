@@ -1,4 +1,5 @@
 #include "wrap.h"
+#include "thpool.h"
 
 typedef struct
 {

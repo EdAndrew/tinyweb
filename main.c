@@ -20,26 +20,24 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	port = atoi(argv[1]);
-	sbuf_init(&sbuf, SBUFSIZE);
+//	sbuf_init(&sbuf, SBUFSIZE);
+	threadpool thpool = thpool_init(4);
 	listenfd = Open_listenfd(port);
-	for (i = 0; i < NTHREADS; ++i)
-		Pthread_create(&tid, NULL, thread, NULL);
+//	for (i = 0; i < NTHREADS; ++i)
+//		Pthread_create(&tid, NULL, thread, NULL);
 
 	for(;;)
 	{
 		connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
-		sbuf_insert(&sbuf, connfd);
+		thpool_add_work(thpool, thread, (void *)&connfd);
+//		sbuf_insert(&sbuf, connfd);
 	}
 }
 
 void * thread(void *vargp)
 {
 	int connfd;
-	Pthread_detach(pthread_self());
-	for(;;)
-	{
-		connfd = sbuf_remove(&sbuf);
-		doit(connfd);
-		Close(connfd);
-	}
+	connfd = *((int *)vargp);
+	doit(connfd);
+	Close(connfd);
 }
