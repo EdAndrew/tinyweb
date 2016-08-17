@@ -20,17 +20,13 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 	port = atoi(argv[1]);
-//	sbuf_init(&sbuf, SBUFSIZE);
-	threadpool thpool = thpool_init(4);
+	threadpool thpool = thpool_init(NTHREADS);
 	listenfd = Open_listenfd(port);
-//	for (i = 0; i < NTHREADS; ++i)
-//		Pthread_create(&tid, NULL, thread, NULL);
 
 	for(;;)
 	{
 		connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
 		thpool_add_work(thpool, thread, (void *)&connfd);
-//		sbuf_insert(&sbuf, connfd);
 	}
 }
 
