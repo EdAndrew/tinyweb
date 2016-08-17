@@ -1,0 +1,7 @@
+PROJECT(tinyweb)
+FIND_PACKAGE(Threads)
+ADD_LIBRARY(wrap wrap.c)
+ADD_LIBRARY(tinyweb tinyweb.c)
+ADD_LIBRARY(thpool thpool.c)
+ADD_EXECUTABLE(httpd main.c)
+TARGET_LINK_LIBRARIES(httpd wrap tinyweb thpool ${CMAKE_THREAD_LIBS_INIT})
