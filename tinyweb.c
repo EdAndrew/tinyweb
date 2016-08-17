@@ -12,7 +12,7 @@ void doit(int fd)
 	/* Read request line and headers */
 	Rio_readinitb(&rio, fd);
 	Rio_readlineb(&rio, buf, MAXLINE);
-	sscanf(buf, "%s %s %s", method, uri, version);
+	sscanf(buf, "%s %s %s", method, uri, version);	//fix: may be there are more than one blank space between method, uri or version
 	if (strcasecmp(method, "GET"))
 	{
 		clienterror(fd, method, "501", "Not Implemented", "Tiny does not implement this method");
