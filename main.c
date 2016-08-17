@@ -11,7 +11,6 @@ int main(int argc, char **argv)
 	int i, listenfd, port, connfd;
 	socklen_t clientlen = sizeof(struct sockaddr_in);
 	struct sockaddr_in clientaddr;
-	pthread_t tid;
 
 	/* Check command line args */
 	if (argc != 2)
