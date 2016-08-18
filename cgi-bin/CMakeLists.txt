@@ -1,0 +1,2 @@
+INCLUDE_DIRECTORIES(../)
+ADD_EXECUTABLE(adder adder.c)
