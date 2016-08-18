@@ -1,5 +1,6 @@
 PROJECT(tinyweb)
 FIND_PACKAGE(Threads)
+ADD_SUBDIRECTORY(cgi-bin)
 ADD_LIBRARY(wrap wrap.c)
 ADD_LIBRARY(thpool thpool.c)
 ADD_EXECUTABLE(tinyweb tinyweb.c)
